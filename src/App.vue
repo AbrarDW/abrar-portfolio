@@ -1,13 +1,8 @@
 <template>
   <div class="min-h-screen jarvis-bg text-white overflow-x-hidden">
-    <!-- Webcam Layer (hidden, for face tracking only) -->
-    <div class="fixed inset-0 z-0 opacity-0">
-      <video ref="videoRef" class="hidden" playsinline></video>
-    </div>
-
     <!-- AI Face Background -->
     <div class="fixed inset-0 z-10 pointer-events-none">
-      <AIFace ref="aiFaceRef"  :visible="aiFaceEnabled" />
+      <AIFace ref="aiFaceRef" :visible="aiFaceEnabled" />
     </div>
 
     <!-- Scanline Overlay -->
@@ -300,7 +295,6 @@ import AIFace from './components/AIFace.vue'
 const aiFaceEnabled = ref(true)
 const systemTime = ref('')
 const typedText = ref('')
-const aiFace = useAIFace(videoRef, () => {})
 const activeSectionIndex = ref(0)
 
 const currentYear = new Date().getFullYear()
