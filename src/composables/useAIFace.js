@@ -3,22 +3,20 @@ import { ref, onUnmounted } from 'vue'
 export function useAIFace(videoRef, onFaceDetected) {
   const isRunning = ref(false)
   const hasFace = ref(false)
-  const facePosition = ref({ x: 0, y: 0 })
+  const facePosition = ref({ x: 0.5, y: 0.5 })
   const faceRotation = ref({ x: 0, y: 0 })
   const expression = ref('neutral')
   const errorMessage = ref('')
   const confidence = ref(0)
+  const eyeOpenness = ref(1)
   
-  let faceDetector = null
+  let detector = null
   let stream = null
   let animationId = null
-  let lastFacePos = { x: 0.5, y: 0.5 }
   let smoothPos = { x: 0.5, y: 0.5 }
   let smoothRotation = { x: 0, y: 0 }
-  let lookDirection = { x: 0, y: 0 }  // Where AI face is looking
   let blinkTimer = 0
   let isBlinking = false
-  let eyeOpenness = 1
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -35,16 +33,20 @@ export function useAIFace(videoRef, onFaceDetected) {
     })
   }
 
-  async function loadFaceDetection() {
-    if (window.FaceDetection) return
+  async function loadTF() {
+    if (window.tf && window.faceDetection) return
 
-    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js')
-    
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.2/dist/face-detection.min.js')
+    ])
+
+    // Wait for globals
     const start = Date.now()
     await new Promise((resolve, reject) => {
       const check = () => {
-        if (window.FaceDetection) resolve()
-        else if (Date.now() - start > 15000) reject(new Error('Face detection load timeout'))
+        if (window.tf && window.faceDetection) resolve()
+        else if (Date.now() - start > 20000) reject(new Error('TF load timeout'))
         else setTimeout(check, 100)
       }
       check()
@@ -55,9 +57,9 @@ export function useAIFace(videoRef, onFaceDetected) {
     if (stream) return
 
     try {
-      await loadFaceDetection()
+      await loadTF()
 
-      if (!window.FaceDetection) {
+      if (!window.tf || !window.faceDetection) {
         errorMessage.value = 'Failed to load face detection. Please refresh.'
         return
       }
@@ -70,16 +72,12 @@ export function useAIFace(videoRef, onFaceDetected) {
       videoRef.value.srcObject = stream
       await videoRef.value.play()
 
-      faceDetector = new window.FaceDetection({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+      // Create face detector
+      const model = window.faceDetection.SupportedModels.MediaPipeFaceDetector
+      detector = await window.faceDetection.createDetector(model, {
+        runtime: 'tfjs',
+        maxFaces: 1
       })
-
-      faceDetector.setOptions({
-        model: 'short',
-        minDetectionConfidence: 0.5
-      })
-
-      faceDetector.onResults(onResults)
 
       processFrame()
       startBlinkTimer()
@@ -87,9 +85,9 @@ export function useAIFace(videoRef, onFaceDetected) {
       isRunning.value = true
       errorMessage.value = ''
     } catch (err) {
-      console.error('Face detection error:', err)
+      console.error('AIFace error:', err)
       if (err.name === 'NotAllowedError') {
-        errorMessage.value = 'Camera permission denied. Please allow camera access.'
+        errorMessage.value = 'Camera permission denied.'
       } else if (err.name === 'NotFoundError') {
         errorMessage.value = 'No camera found.'
       } else {
@@ -104,70 +102,67 @@ export function useAIFace(videoRef, onFaceDetected) {
       isBlinking = true
       setTimeout(() => {
         isBlinking = false
-        // Random next blink between 2-6 seconds
         blinkTimer = setTimeout(doBlink, 2000 + Math.random() * 4000)
       }, 150)
     }
     blinkTimer = setTimeout(doBlink, 2000 + Math.random() * 3000)
   }
 
-  function processFrame() {
-    if (!videoRef.value || !faceDetector) return
+  async function processFrame() {
+    if (!videoRef.value || !detector) return
 
     if (videoRef.value.readyState >= 2) {
-      faceDetector.send({ image: videoRef.value })
+      try {
+        const faces = await detector.detect(videoRef.value)
+        onFaceResults(faces)
+      } catch (e) {
+        // Skip frame silently
+      }
     }
 
     animationId = requestAnimationFrame(processFrame)
   }
 
-  function onResults(results) {
-    if (!results.detections || results.detections.length === 0) {
+  function onFaceResults(faces) {
+    if (!faces || faces.length === 0) {
       hasFace.value = false
-      lookDirection.x = smoothRotation.y * 0.3  // AI looks slightly where user was
-      lookDirection.y = smoothRotation.x * 0.3
-      onFaceDetected?.({ 
-        hasFace: false, 
-        position: smoothPos, 
+      eyeOpenness.value = 1
+      onFaceDetected?.({
+        hasFace: false,
+        position: smoothPos,
         rotation: smoothRotation,
         expression: expression.value,
-        eyeOpenness,
-        lookDirection
+        eyeOpenness: 1,
+        lookDirection: { x: smoothRotation.y * 0.3, y: smoothRotation.x * 0.3 },
+        confidence: 0
       })
       return
     }
 
-    const detection = results.detections[0]
-    const box = detection.boundingBox
-    const centerX = (box.xMin + box.width / 2) / videoRef.value.videoWidth
-    const centerY = (box.yMin + box.height / 2) / videoRef.value.videoHeight
+    const face = faces[0]
+    const box = face.box
+    const vw = videoRef.value.videoWidth || 640
+    const vh = videoRef.value.videoHeight || 480
 
-    // Mirror X (webcam)
+    const centerX = (box.xMin + box.width / 2) / vw
+    const centerY = (box.yMin + box.height / 2) / vh
     const mx = 1 - centerX
 
-    // Smooth movement
     smoothPos.x += (mx - smoothPos.x) * 0.08
     smoothPos.y += (centerY - smoothPos.y) * 0.08
 
-    // Calculate rotation from face position relative to center
-    const targetRotY = (smoothPos.x - 0.5) * 0.4  // Left/right rotation
-    const targetRotX = (smoothPos.y - 0.5) * 0.3  // Up/down rotation
+    const targetRotY = (smoothPos.x - 0.5) * 0.4
+    const targetRotX = (smoothPos.y - 0.5) * 0.3
     smoothRotation.x += (targetRotX - smoothRotation.x) * 0.1
     smoothRotation.y += (targetRotY - smoothRotation.y) * 0.1
 
-    // Eye blink based on openness (if available from face mesh)
     if (!isBlinking) {
-      eyeOpenness += (1 - eyeOpenness) * 0.1
+      eyeOpenness.value += (1 - eyeOpenness.value) * 0.15
     } else {
-      eyeOpenness = 0
+      eyeOpenness.value = 0
     }
 
-    // Face confidence
-    confidence.value = detection.score?.[0] ?? 0.8
-
-    // AI face "looks" slightly away from user's actual position for natural feel
-    lookDirection.x = smoothRotation.y * 0.5 + (Math.random() - 0.5) * 0.02
-    lookDirection.y = smoothRotation.x * 0.5 + (Math.random() - 0.5) * 0.02
+    confidence.value = face.keypoints ? 0.8 : 0.6
 
     hasFace.value = true
     facePosition.value = { x: smoothPos.x, y: smoothPos.y }
@@ -178,8 +173,11 @@ export function useAIFace(videoRef, onFaceDetected) {
       position: facePosition.value,
       rotation: faceRotation.value,
       expression: expression.value,
-      eyeOpenness,
-      lookDirection,
+      eyeOpenness: eyeOpenness.value,
+      lookDirection: {
+        x: smoothRotation.y * 0.5 + (Math.random() - 0.5) * 0.02,
+        y: smoothRotation.x * 0.5 + (Math.random() - 0.5) * 0.02
+      },
       confidence: confidence.value
     })
   }
@@ -189,9 +187,8 @@ export function useAIFace(videoRef, onFaceDetected) {
     if (animationId) cancelAnimationFrame(animationId)
     if (stream) stream.getTracks().forEach(t => t.stop())
     if (videoRef.value) videoRef.value.srcObject = null
-    if (faceDetector) faceDetector.close()
+    detector = null
     stream = null
-    faceDetector = null
     isRunning.value = false
     hasFace.value = false
   }
