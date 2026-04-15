@@ -85,8 +85,10 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       await videoRef.value.play()
       
       // Initialize MediaPipe Hands via window global
+      // Intercept ALL asset URLs so they're loaded from CDN, not relative to app origin
+      const cdnBase = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'
       hands = new window.Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        locateFile: (file) => `${cdnBase}${file}`
       })
       
       hands.setOptions({
