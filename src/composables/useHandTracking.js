@@ -20,21 +20,6 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
   let isPinching = false
   let lastY = 0
 
-  // Load MediaPipe from CDN
-  async function loadMediaPipe() {
-    if (window.Hands && window.Camera) return
-
-    const [handsUrl, cameraUrl] = [
-      'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js',
-      'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'
-    ]
-
-    await Promise.all([
-      loadScript(handsUrl),
-      loadScript(cameraUrl)
-    ])
-  }
-
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       if (document.querySelector(`script[src="${src}"]`)) {
@@ -50,12 +35,41 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
     })
   }
 
+  /** Load MediaPipe from CDN with polling wait for globals */
+  async function loadMediaPipe(timeoutMs = 15000) {
+    if (window.Hands && window.Camera) return
+
+    const urls = [
+      'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js'
+    ]
+
+    await Promise.all(urls.map(loadScript))
+
+    // Poll until window.Hands is available (set by za() call at end of script)
+    const start = Date.now()
+    await new Promise((resolve, reject) => {
+      const check = () => {
+        if (window.Hands) resolve()
+        else if (Date.now() - start > timeoutMs) reject(new Error('MediaPipe load timeout'))
+        else setTimeout(check, 100)
+      }
+      check()
+    })
+  }
+
   async function start() {
     if (stream) return
     
     try {
       init()
       await loadMediaPipe()
+      
+      if (!window.Hands) {
+        errorMessage.value = 'Failed to load hand tracking. Please refresh the page.'
+        return
+      }
       
       // Get webcam stream
       stream = await navigator.mediaDevices.getUserMedia({
@@ -70,9 +84,8 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       videoRef.value.srcObject = stream
       await videoRef.value.play()
       
-      // Initialize MediaPipe Hands
-      // eslint-disable-next-line no-undef
-      hands = new Hands({
+      // Initialize MediaPipe Hands via window global
+      hands = new window.Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       })
       
@@ -85,7 +98,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       
       hands.onResults(onResults)
       
-      // Start processing frames
+      // Start processing loop
       processFrame()
       
       isRunning.value = true
@@ -97,7 +110,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       } else if (err.name === 'NotFoundError') {
         errorMessage.value = 'No camera found. Please connect a webcam.'
       } else {
-        errorMessage.value = `Camera error: ${err.message}`
+        errorMessage.value = `Error: ${err.message}`
       }
     }
   }
@@ -132,17 +145,24 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
 
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       const landmarks = results.multiHandLandmarks[0]
-      const connections = results.multiHandConnections || []
       
-      // Draw hand skeleton (mirrored to match video)
+      // Draw hand skeleton (mirrored)
       ctx.save()
       ctx.scale(-1, 1)
       ctx.translate(-w, 0)
       
       // Draw connections
-      for (const connection of connections) {
-        const start = landmarks[connection[0]]
-        const end = landmarks[connection[1]]
+      const connections = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [5,9],[9,10],[10,11],[11,12],
+        [9,13],[13,14],[14,15],[15,16],
+        [13,17],[0,17],[17,18],[18,19],[19,20]
+      ]
+      
+      for (const [i, j] of connections) {
+        const start = landmarks[i]
+        const end = landmarks[j]
         ctx.beginPath()
         ctx.strokeStyle = '#00f0ff66'
         ctx.lineWidth = 1.5
@@ -154,13 +174,13 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       // Draw landmark dots
       for (const landmark of landmarks) {
         ctx.beginPath()
-        ctx.arc(landmark.x * w, landmark.y * h, 2, 0, 2 * Math.PI)
+        ctx.arc(landmark.x * w, landmark.y * h, 2.5, 0, 2 * Math.PI)
         ctx.fillStyle = '#00f0ff'
         ctx.fill()
       }
       ctx.restore()
 
-      // Get key landmarks
+      // Key landmarks
       const wrist = landmarks[0]
       const indexTip = landmarks[8]
       const thumbTip = landmarks[4]
@@ -173,18 +193,12 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       const ringMcp = landmarks[13]
       const pinkyMcp = landmarks[17]
 
-      // Hand position (mirrored)
       const mx = 1 - wrist.x
       const my = wrist.y
 
-      // Calculate pinch distance
-      const pinchDist = Math.hypot(
-        indexTip.x - thumbTip.x,
-        indexTip.y - thumbTip.y
-      )
+      const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y)
       pinchDistance.value = pinchDist
 
-      // Detect gestures
       const isIndexExtended = indexTip.y < indexMcp.y
       const isMiddleExtended = middleTip.y < middleMcp.y
       const isRingExtended = ringTip.y < ringMcp.y
@@ -194,7 +208,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       const isPinch = pinchDist < 0.07
       const isOk = isPinch && isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended
 
-      // Scroll gesture - hand moving up/down
+      // Scroll gesture
       const scrollDelta = my - lastY
       if (Math.abs(scrollDelta) > 0.008 && scrollEnabled.value) {
         scrollAccumulator += scrollDelta
@@ -226,19 +240,16 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
         gestureState.value = 'none'
       }
 
-      // Open palm
       if (allFingersExtended && !isPinching && !isOk) {
         gestureState.value = 'open-palm'
         onGesture?.('open-palm', { x: mx, y: my })
       }
 
-      // Pointing
       if (isIndexExtended && !allFingersExtended && !isPinching && !isOk) {
         gestureState.value = 'pointing'
         onGesture?.('point', { x: mx, y: my })
       }
 
-      // OK sign
       if (isOk) {
         gestureState.value = 'ok'
         onGesture?.('ok', { x: mx, y: my })
