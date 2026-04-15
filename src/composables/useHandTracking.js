@@ -1,6 +1,4 @@
 import { ref, onUnmounted } from 'vue'
-import { Hands } from '@mediapipe/hands'
-import { drawLandmarks, drawConnectors } from '@mediapipe/drawing_utils'
 
 export function useHandTracking(videoRef, canvasRef, onGesture) {
   const isRunning = ref(false)
@@ -20,10 +18,36 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
   let lastPinchDist = 0
   let scrollAccumulator = 0
   let isPinching = false
+  let lastY = 0
 
-  function init() {
-    if (!videoRef.value || !canvasRef.value) return
-    ctx = canvasRef.value.getContext('2d')
+  // Load MediaPipe from CDN
+  async function loadMediaPipe() {
+    if (window.Hands && window.Camera) return
+
+    const [handsUrl, cameraUrl] = [
+      'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'
+    ]
+
+    await Promise.all([
+      loadScript(handsUrl),
+      loadScript(cameraUrl)
+    ])
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve()
+        return
+      }
+      const script = document.createElement('script')
+      script.src = src
+      script.async = true
+      script.onload = resolve
+      script.onerror = reject
+      document.head.appendChild(script)
+    })
   }
 
   async function start() {
@@ -31,6 +55,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
     
     try {
       init()
+      await loadMediaPipe()
       
       // Get webcam stream
       stream = await navigator.mediaDevices.getUserMedia({
@@ -46,6 +71,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       await videoRef.value.play()
       
       // Initialize MediaPipe Hands
+      // eslint-disable-next-line no-undef
       hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       })
@@ -106,13 +132,32 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
 
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       const landmarks = results.multiHandLandmarks[0]
+      const connections = results.multiHandConnections || []
       
       // Draw hand skeleton (mirrored to match video)
       ctx.save()
       ctx.scale(-1, 1)
       ctx.translate(-w, 0)
-      drawLandmarks(ctx, landmarks, { color: '#00f0ff', lineWidth: 1, radius: 2 })
-      drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS, { color: '#00f0ff66', lineWidth: 1 })
+      
+      // Draw connections
+      for (const connection of connections) {
+        const start = landmarks[connection[0]]
+        const end = landmarks[connection[1]]
+        ctx.beginPath()
+        ctx.strokeStyle = '#00f0ff66'
+        ctx.lineWidth = 1.5
+        ctx.moveTo(start.x * w, start.y * h)
+        ctx.lineTo(end.x * w, end.y * h)
+        ctx.stroke()
+      }
+      
+      // Draw landmark dots
+      for (const landmark of landmarks) {
+        ctx.beginPath()
+        ctx.arc(landmark.x * w, landmark.y * h, 2, 0, 2 * Math.PI)
+        ctx.fillStyle = '#00f0ff'
+        ctx.fill()
+      }
       ctx.restore()
 
       // Get key landmarks
@@ -150,7 +195,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       const isOk = isPinch && isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended
 
       // Scroll gesture - hand moving up/down
-      const scrollDelta = my - handPosition.value.y
+      const scrollDelta = my - lastY
       if (Math.abs(scrollDelta) > 0.008 && scrollEnabled.value) {
         scrollAccumulator += scrollDelta
         if (Math.abs(scrollAccumulator) > 0.04) {
@@ -160,6 +205,7 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
       } else {
         scrollAccumulator = 0
       }
+      lastY = my
 
       // Pinch zoom
       if (isPinching && lastPinchDist > 0) {
@@ -209,6 +255,11 @@ export function useHandTracking(videoRef, canvasRef, onGesture) {
     }
 
     isRunning.value = true
+  }
+
+  function init() {
+    if (!videoRef.value || !canvasRef.value) return
+    ctx = canvasRef.value.getContext('2d')
   }
 
   function stop() {
