@@ -1,9 +1,13 @@
 <template>
   <div class="min-h-screen jarvis-bg text-white overflow-x-hidden">
-    <!-- Webcam Layer -->
-    <div class="fixed inset-0 z-0 opacity-20">
+    <!-- Webcam Layer (hidden, for face tracking only) -->
+    <div class="fixed inset-0 z-0 opacity-0">
       <video ref="videoRef" class="hidden" playsinline></video>
-      <canvas ref="canvasRef" class="w-full h-full object-cover transform scale-x-[-1]"></canvas>
+    </div>
+
+    <!-- AI Face Background -->
+    <div class="fixed inset-0 z-10 pointer-events-none">
+      <AIFace ref="aiFaceRef" :video-ref="videoRef" :visible="aiFaceEnabled" />
     </div>
 
     <!-- Scanline Overlay -->
@@ -24,28 +28,16 @@
           </div>
         </div>
         <div class="flex items-center gap-6 mono-font text-xs text-cyan-400/60">
-          <span v-if="handTracking.isRunning.value">
-            <span class="text-emerald-400">●</span> TRACKING ACTIVE
-          </span>
-          <span v-if="currentGesture !== 'none'" class="text-cyan-400 glow-text">
-            {{ currentGesture.replace('-', ' ').toUpperCase() }}
+          <span v-if="aiFaceRef.value?.isRunning" class="text-emerald-400">
+            <span class="animate-pulse">●</span> AI ACTIVE
           </span>
           <span>{{ systemTime }}</span>
-          <button @click="toggleCamera" class="ml-4 px-3 py-1 border border-cyan-400/30 rounded hover:border-cyan-400/60 transition-colors text-xs" :class="{ 'border-red-400/50 text-red-400': handTracking.errorMessage.value }">
-            {{ handTracking.isRunning.value ? 'DISABLE CAM' : 'ENABLE CAM' }}
+          <button @click="toggleAIFace" class="ml-4 px-3 py-1 border border-cyan-400/30 rounded hover:border-cyan-400/60 transition-colors text-xs">
+            {{ aiFaceRef.value?.isRunning ? 'DISABLE AI' : 'ENABLE AI' }}
           </button>
-          <div v-if="handTracking.errorMessage.value" class="absolute top-full mt-2 right-0 w-64 p-3 bg-red-950/80 border border-red-400/30 rounded-lg text-xs text-red-300 mono-font">
-            {{ handTracking.errorMessage.value }}
-          </div>
         </div>
       </div>
     </header>
-
-    <!-- Gesture Indicator HUD -->
-    <div v-if="showGestureHint" class="fixed top-24 right-8 z-50 p-4 bg-black/60 backdrop-blur border border-cyan-400/30 rounded-lg mono-font text-xs">
-      <div class="text-cyan-400 mb-2">GESTURE DETECTED</div>
-      <div class="text-white">{{ gestureHintText }}</div>
-    </div>
 
     <!-- Scroll Indicator -->
     <div class="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col items-center gap-2">
@@ -174,7 +166,7 @@
           <div class="h-px w-32 bg-gradient-to-r from-cyan-400 to-transparent mb-12"></div>
           
           <div class="space-y-6">
-            <div v-for="(job, index) in experience" :key="job.company" 
+            <div v-for="job in experience" :key="job.company" 
                  class="relative pl-8 border-l border-cyan-400/20 hover:border-cyan-400 transition-all group">
               <div class="absolute left-0 top-0 w-3 h-3 -translate-x-[7px] rounded-full bg-cyan-400/50 group-hover:bg-cyan-400 transition-colors"></div>
               <div class="p-6 bg-white/5 border border-cyan-400/10 rounded-lg hover:border-cyan-400/30 transition-all">
@@ -205,7 +197,6 @@
           </div>
           <div class="h-px w-32 bg-gradient-to-r from-cyan-400 to-transparent mb-12"></div>
           
-          <!-- Skill Categories -->
           <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div v-for="category in skillCategories" :key="category.name" 
                  class="p-6 bg-white/5 border border-cyan-400/10 rounded-lg hover:border-cyan-400/30 transition-all">
@@ -303,16 +294,16 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useHandTracking } from './composables/useHandTracking.js'
+import AIFace from './components/AIFace.vue'
 
 const videoRef = ref(null)
-const canvasRef = ref(null)
-const currentGesture = ref('none')
-const showGestureHint = ref(false)
-const gestureHintText = ref('')
-const activeSectionIndex = ref(0)
+const aiFaceEnabled = ref(true)
 const systemTime = ref('')
 const typedText = ref('')
+const aiFace = useAIFace(videoRef, () => {})
+const activeSectionIndex = ref(0)
+
+const currentYear = new Date().getFullYear()
 
 const typingPhrases = [
   'Full-Stack Software Engineer',
@@ -320,8 +311,6 @@ const typingPhrases = [
   'Vue.js | React | NestJS | Laravel',
   'UAE-based, worldwide reach'
 ]
-
-const currentYear = new Date().getFullYear()
 
 const stats = [
   { value: '10+', label: 'YEARS EXP' },
@@ -362,44 +351,15 @@ const techStack = [
   { name: 'Linux', icon: '🐧' }
 ]
 
-// Hand tracking
-const handTracking = useHandTracking(videoRef, canvasRef, handleGesture)
+const aiFaceRef = ref(null)
 
-function handleGesture(gesture, data) {
-  currentGesture.value = gesture
-  showGestureHint.value = true
-  
-  const hints = {
-    'scroll-up': '↑ Scrolling up',
-    'scroll-down': '↓ Scrolling down',
-    'pinch': data.scale === 'in' ? '🔍 Zooming in' : '🔍 Zooming out',
-    'pinch-start': '✋ Pinch started',
-    'pinch-end': '✋ Pinch released',
-    'open-palm': '🖐️ Menu triggered',
-    'point': '👆 Pointing',
-    'ok': '👌 OK gesture'
-  }
-  
-  gestureHintText.value = hints[gesture] || gesture
-  
-  clearTimeout(window.gestureHintTimer)
-  window.gestureHintTimer = setTimeout(() => {
-    showGestureHint.value = false
-  }, 1500)
-
-  // Handle gestures
-  if (gesture === 'scroll-up') {
-    scrollToSection('about')
-  } else if (gesture === 'scroll-down') {
-    scrollToSection('skills')
-  }
-}
-
-async function toggleCamera() {
-  if (handTracking.isRunning.value) {
-    handTracking.stop()
-  } else {
-    await handTracking.start()
+function toggleAIFace() {
+  if (aiFaceRef.value) {
+    if (aiFaceRef.value.isRunning) {
+      aiFaceRef.value.stop()
+    } else {
+      aiFaceRef.value.start()
+    }
   }
 }
 
@@ -472,6 +432,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timeInterval) clearInterval(timeInterval)
-  handTracking.stop()
+  if (aiFaceRef.value) aiFaceRef.value.stop()
 })
 </script>
