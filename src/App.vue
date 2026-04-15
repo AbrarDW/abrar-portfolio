@@ -31,9 +31,12 @@
             {{ currentGesture.replace('-', ' ').toUpperCase() }}
           </span>
           <span>{{ systemTime }}</span>
-          <button @click="toggleCamera" class="ml-4 px-3 py-1 border border-cyan-400/30 rounded hover:border-cyan-400/60 transition-colors text-xs">
+          <button @click="toggleCamera" class="ml-4 px-3 py-1 border border-cyan-400/30 rounded hover:border-cyan-400/60 transition-colors text-xs" :class="{ 'border-red-400/50 text-red-400': handTracking.errorMessage.value }">
             {{ handTracking.isRunning.value ? 'DISABLE CAM' : 'ENABLE CAM' }}
           </button>
+          <div v-if="handTracking.errorMessage.value" class="absolute top-full mt-2 right-0 w-64 p-3 bg-red-950/80 border border-red-400/30 rounded-lg text-xs text-red-300 mono-font">
+            {{ handTracking.errorMessage.value }}
+          </div>
         </div>
       </div>
     </header>
