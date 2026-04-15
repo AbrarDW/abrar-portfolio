@@ -7,7 +7,7 @@
 
     <!-- AI Face Background -->
     <div class="fixed inset-0 z-10 pointer-events-none">
-      <AIFace ref="aiFaceRef" :video-ref="videoRef" :visible="aiFaceEnabled" />
+      <AIFace ref="aiFaceRef"  :visible="aiFaceEnabled" />
     </div>
 
     <!-- Scanline Overlay -->
@@ -296,7 +296,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AIFace from './components/AIFace.vue'
 
-const videoRef = ref(null)
+
 const aiFaceEnabled = ref(true)
 const systemTime = ref('')
 const typedText = ref('')
