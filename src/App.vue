@@ -15,7 +15,7 @@
     <aside class="terminal">
       <div class="terminal-header">
         <div
-          v-for="(_, key) in Object.keys(sections.value)"
+          v-for="key in Object.keys(sections.value)"
           :key="key"
           @click="selectedSection = key"
           :class="{ active: selectedSection === key }"
