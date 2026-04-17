@@ -37,6 +37,32 @@ let camera = null;
 let frameCount = 0;
 let lastFpsUpdate = 0;
 
+// Simple heuristic to estimate expression (happy / sad / neutral)
+function estimateExpression(landmarks) {
+  // Mouth indices from MediaPipe FaceMesh
+  const LEFT_MOUTH = 61;   // left corner
+  const RIGHT_MOUTH = 291; // right corner
+  const UPPER_LIP_TOP = 13; // upper lip center
+  const LOWER_LIP_BOTTOM = 14; // lower lip center
+
+  const left = landmarks[LEFT_MOUTH];
+  const right = landmarks[RIGHT_MOUTH];
+  const upper = landmarks[UPPER_LIP_TOP];
+  const lower = landmarks[LOWER_LIP_BOTTOM];
+
+  const mouthWidth = Math.hypot(right.x - left.x, right.y - left.y);
+  const mouthHeight = Math.hypot(lower.x - upper.x, lower.y - upper.y);
+
+  const aspect = mouthHeight / mouthWidth;
+  // Heuristic thresholds (may need tuning)
+  if (aspect > 0.35) {
+    return 'sad';
+  } else if (aspect < 0.2) {
+    return 'happy';
+  }
+  return 'neutral';
+}
+
 function onResults(results) {
   const canvas = canvasEl.value;
   const ctx = canvas.getContext('2d');
@@ -46,13 +72,22 @@ function onResults(results) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-    const landmarks = results.multiFaceLandmarks[0];
-    if (showMesh.value) {
-      drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, { color: '#00ff88', lineWidth: 1 });
-    }
-    if (showPoints.value) {
-      drawLandmarks(ctx, landmarks, { color: '#00ffff', lineWidth: 2, radius: 2 });
-    }
+    results.multiFaceLandmarks.forEach((landmarks, idx) => {
+      // Draw mesh (wireframe) for each face
+      if (showMesh.value) {
+        drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, { color: '#00ff88', lineWidth: 1 });
+      }
+      // Draw points for each face
+      if (showPoints.value) {
+        drawLandmarks(ctx, landmarks, { color: '#00ffff', lineWidth: 2, radius: 2 });
+      }
+      // Write expression label near the nose tip (landmark 1)
+      const nose = landmarks[1];
+      const expr = estimateExpression(landmarks);
+      ctx.fillStyle = '#ffdd00';
+      ctx.font = '14px sans-serif';
+      ctx.fillText(`#${idx + 1}: ${expr}`, nose.x * canvas.width, nose.y * canvas.height - 10);
+    });
   }
 
   // FPS calc
