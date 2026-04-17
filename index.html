@@ -1,16 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Abrar Dhalwala — Software Engineer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <title>Abrar Dhalwala • Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrapper">
+  <!-- ==== LEFT SIDEBAR ==== -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h1 class="brand">AV</h1>
+      <p class="tagline">NEXUS / CREATIVE</p>
+      <p class="name">Abrar Dhalwala</p>
+    </div>
+    <nav class="nav">
+      <a href="#home"><span class="icon">🏠</span>HOME</a>
+      <a href="#about"><span class="icon">ℹ️</span>ABOUT</a>
+      <a href="#portfolio"><span class="icon">📁</span>PORTFOLIO</a>
+      <a href="#services"><span class="icon">⚙️</span>SERVICES</a>
+      <a href="#contact"><span class="icon">✉️</span>GET IN TOUCH</a>
+    </nav>
+    <div class="portrait">
+      <img src="portrait.jpg" alt="Abrar portrait">
+    </div>
+    <section class="about-me">
+      <h3>About Me</h3>
+      <p>Full‑Stack Engineer • AI Enthusiast • Creator. I build modern, performance‑first web experiences.</p>
+    </section>
+    <footer class="sidebar-footer">
+      <a href="https://in.linkedin.com/in/abrardw" target="_blank" rel="noopener" class="social">LinkedIn</a>
+      <a href="https://www.instagram.com/abrar.codes" target="_blank" rel="noopener" class="social">Instagram</a>
+      <p>© 2024 Abrar Dhalwala. All rights reserved.</p>
+    </footer>
+  </aside>
+  <!-- ==== MAIN CONTENT ==== -->
+  <main class="main">
+    <header class="top-nav">
+      <a href="#home">HOME</a>
+      <a href="#about">ABOUT</a>
+      <a href="#portfolio">PORTFOLIO</a>
+      <a href="#services">SERVICES</a>
+      <a href="#contact">CONTACT</a>
+      <a href="#contact" class="cta">GET IN TOUCH</a>
+    </header>
+    <!-- Hero -->
+    <section class="hero" id="home">
+      <div class="hero-text">
+        <h1>ARCHITECTING DIGITAL FUTURES</h1>
+        <p>Crafting intuitive interfaces &amp; immersive experiences for tomorrow’s technology.</p>
+        <div class="hero-cta">
+          <a href="#portfolio" class="btn primary">EXPLORE WORK</a>
+          <a href="Abrar_Dhalwala_CV.pdf" class="btn secondary">VIEW MY CV</a>
+        </div>
+      </div>
+      <div class="hero-graphic">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="80" stroke="#00ffdd" stroke-width="2" fill="none"/>
+          <path d="M50 100 Q80 20 130 100 Q80 180 50 100" stroke="#00ffdd" stroke-width="2" fill="none"/>
+        </svg>
+      </div>
+    </section>
+    <!-- Projects -->
+    <section class="projects" id="portfolio">
+      <h2>Projects</h2>
+      <div class="grid">
+        <article class="card">
+          <img src="project1.jpg" alt="Project 1">
+          <h3>SYNTHESIS: AR Dashboard</h3>
+          <p>Holographic AR UI for real‑time data visualization.</p>
+          <a href="#" class="view">VIEW PROJECT →</a>
+        </article>
+        <article class="card">
+          <img src="project2.jpg" alt="Project 2">
+          <h3>VELOCITY: Crypto App</h3>
+          <p>Sleek mobile app for crypto portfolio tracking.</p>
+          <a href="#" class="view">VIEW PROJECT →</a>
+        </article>
+        <article class="card">
+          <img src="project3.jpg" alt="Project 3">
+          <h3>AETHER: VR Exploration</h3>
+          <p>Immersive VR experience for educational tours.</p>
+          <a href="#" class="view">VIEW PROJECT →</a>
+        </article>
+        <article class="card">
+          <img src="project4.jpg" alt="Project 4">
+          <h3>ORBITAL: Web Platform</h3>
+          <p>Modern web dashboard for SaaS management.</p>
+          <a href="#" class="view">VIEW PROJECT →</a>
+        </article>
+      </div>
+    </section>
+    <!-- Contact -->
+    <section class="contact" id="contact">
+      <h2>Contact</h2>
+      <p>Feel free to drop me a line or connect on social media.</p>
+      <a href="mailto:abrardw@example.com" class="email">abrardw@example.com</a>
+    </section>
+  </main>
+</div>
+</body>
 </html>
