@@ -15,7 +15,7 @@
     <aside class="terminal">
       <div class="terminal-header">
         <div
-          v-for="key in Object.keys(sections.value)"
+          v-for="key in sectionKeys"
           :key="key"
           @click="selectedSection = key"
           :class="{ active: selectedSection === key }"
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 
 const videoEl = ref(null);
 const canvasEl = ref(null);
@@ -79,6 +79,8 @@ const selectedSection = ref(null);
 const displayedText = ref('');
 const typingInterval = ref(null);
 const typingSpeed = 40; // ms per char
+
+const sectionKeys = computed(() => Object.keys(sections.value || {}));
 
 // Simple heuristic to estimate expression (happy / sad / neutral)
 function estimateExpression(landmarks) {
