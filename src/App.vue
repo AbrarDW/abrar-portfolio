@@ -1,7 +1,9 @@
 <template>
   <div id="app">
-    <video ref="videoElement" autoplay playsinline></video>
-    <canvas ref="canvasElement"></canvas>
+    <div class="video-container">
+      <video ref="videoElement" autoplay playsinline></video>
+      <canvas ref="canvasElement"></canvas>
+    </div>
     
     <div class="controls">
       <button 
@@ -137,8 +139,10 @@ const resizeCanvas = () => {
   const video = videoElement.value
   
   if (canvas && video) {
-    canvas.width = video.videoWidth || window.innerWidth
-    canvas.height = video.videoHeight || window.innerHeight
+    // Use the CSS dimensions we set (200px width, height auto)
+    const rect = video.getBoundingClientRect()
+    canvas.width = rect.width
+    canvas.height = rect.height
   }
 }
 
@@ -172,3 +176,84 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 </script>
+
+<style scoped>
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.video-container {
+  position: relative;
+  width: 200px; /* Small corner size */
+  margin: 0;
+}
+
+#videoElement {
+  width: 100%;
+  height: auto;
+  display: block;
+  background-color: #000;
+}
+
+#canvasElement {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.controls {
+  position: absolute;
+  top: 20px;
+  left: 230px; /* Right of video */
+  z-index: 10;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.control-btn {
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: 1px solid #333;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #555;
+}
+
+.control-btn.active {
+  background: rgba(0, 123, 255, 0.5);
+  border-color: #007bff;
+}
+
+.status {
+  position: absolute;
+  bottom: 20px;
+  left: 230px; /* Align with controls */
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+</style>
