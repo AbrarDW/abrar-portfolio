@@ -33,16 +33,33 @@
         <h2>Contact</h2>
         <p>Feel free to reach out via any of the social links above or drop me an email at <a href="mailto:abrardw@example.com">abrardw@example.com</a>.</p>
       </article>
+      <article class="experience">
+        <h2>Experience</h2>
+        <ul>
+          <li><strong>Senior Front‑End Engineer</strong> – 5+ years building Vue 3, React and real‑time web apps.</li>
+          <li><strong>AI‑Driven UI Projects</strong> – Integrated MediaPipe, TensorFlow.js and custom ML models into interactive experiences.</li>
+          <li><strong>OpenClaw Contributor</strong> – Developed automation plugins and skills for the OpenClaw ecosystem.</li>
+        </ul>
+      </article>
+      <article class="skills">
+        <h2>Skills</h2>
+        <p>Vue 3, Vite, TypeScript, JavaScript, CSS‑in‑JS, Tailwind, MediaPipe, WebGL, Canvas API, Node.js, Git, CI/CD, Cloud Deployments.</p>
+      </article>
     </section>
 
     <!-- UI controls -->
     <div class="controls">
-      <button @click="showMesh = !showMesh" :class="{ active: showMesh }">
-        {{ showMesh ? 'Hide' : 'Show' }} Mesh
+      <button v-if="!meshEnabled" @click="startMesh" class="control-btn">
+        Enable Face Mesh
       </button>
-      <button @click="showPoints = !showPoints" :class="{ active: showPoints }">
-        {{ showPoints ? 'Hide' : 'Show' }} Points
-      </button>
+      <template v-else>
+        <button @click="showMesh = !showMesh" :class="{ active: showMesh }" class="control-btn">
+          {{ showMesh ? 'Hide' : 'Show' }} Mesh
+        </button>
+        <button @click="showPoints = !showPoints" :class="{ active: showPoints }" class="control-btn">
+          {{ showPoints ? 'Hide' : 'Show' }} Points
+        </button>
+      </template>
     </div>
 
     <div class="status">
@@ -131,37 +148,11 @@ function onResults(results) {
 }
 
 onMounted(() => {
-  // Wait for MediaPipe globals
+  // Wait for MediaPipe scripts to load – we don't start the camera until user clicks.
   const wait = setInterval(() => {
     if (typeof FaceMesh !== 'undefined' && typeof Camera !== 'undefined') {
       clearInterval(wait);
-      // Init FaceMesh
-      faceMesh = new FaceMesh({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-      });
-      faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
-      faceMesh.onResults(onResults);
-
-      // Set up camera
-      camera = new Camera(videoEl.value, {
-        onFrame: async () => {
-          await faceMesh.send({ image: videoEl.value });
-        },
-        width: 1280,
-        height: 720,
-      });
-      camera.start()
-        .then(() => {
-          status.value = 'Active';
-        })
-        .catch((e) => {
-          status.value = 'Camera error: ' + e.message;
-        });
+      status.value = 'Scripts loaded – click \"Enable Face Mesh\" to start';
     }
   }, 100);
 });
