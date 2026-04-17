@@ -5,6 +5,16 @@
     <!-- canvas covers full viewport -->
     <canvas ref="canvasEl" class="overlay"></canvas>
 
+    <!-- Personal overlay (futuristic) -->
+    <div class="info-panel">
+      <h1 class="name">Abrar Dhalwala</h1>
+      <div class="links">
+        <a href="https://in.linkedin.com/in/abrardw" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://www.instagram.com/abrar.codes" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.threads.net/@abrar.codes" target="_blank" rel="noopener">Threads</a>
+      </div>
+    </div>
+
     <!-- UI controls -->
     <div class="controls">
       <button @click="showMesh = !showMesh" :class="{ active: showMesh }">
@@ -145,14 +155,43 @@ onBeforeUnmount(() => {
 .app {
   position: fixed;
   inset: 0;
-  background: #000;
+  background: radial-gradient(ellipse at center, #0a0a2a, #000);
   overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
 }
 .overlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+/* Personal overlay */
+.info-panel {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #00ffdd;
+  z-index: 10;
+  animation: fadeIn 2s ease-out;
+}
+.info-panel .name {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px #00ffdd;
+}
+.info-panel .links a {
+  margin: 0 0.8rem;
+  color: #fff;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.3s, border-bottom 0.3s;
+}
+.info-panel .links a:hover {
+  color: #00ffdd;
+  border-bottom: 1px solid #00ffdd;
 }
 .controls {
   position: absolute;
@@ -181,5 +220,9 @@ button.active { background: rgba(0,123,255,0.5); border-color:#007bff; }
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 12px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 </style>
