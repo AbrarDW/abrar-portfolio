@@ -1,19 +1,39 @@
 <template>
   <div class="app">
-    <!-- hidden video that feeds MediaPipe -->
+    <!-- hidden video feeding MediaPipe -->
     <video ref="videoEl" autoplay muted playsinline style="display:none;"></video>
-    <!-- canvas covers full viewport -->
     <canvas ref="canvasEl" class="overlay"></canvas>
 
-    <!-- Personal overlay (futuristic) -->
-    <div class="info-panel">
+    <!-- Futuristic Personal Overlay -->
+    <section class="info-panel">
       <h1 class="name">Abrar Dhalwala</h1>
+      <p class="title">Full‑Stack Engineer • AI Enthusiast • Creator</p>
       <div class="links">
         <a href="https://in.linkedin.com/in/abrardw" target="_blank" rel="noopener">LinkedIn</a>
         <a href="https://www.instagram.com/abrar.codes" target="_blank" rel="noopener">Instagram</a>
         <a href="https://www.threads.net/@abrar.codes" target="_blank" rel="noopener">Threads</a>
       </div>
-    </div>
+    </section>
+
+    <!-- Main content sections (scrollable) -->
+    <section class="content">
+      <article class="about">
+        <h2>About Me</h2>
+        <p>Hello! I’m Abrar, a senior frontend engineer specializing in Vue 3, real‑time computer‑vision and AI‑powered web experiences. I love crafting interactive, performance‑first interfaces that blend cutting‑edge tech with clean design.</p>
+      </article>
+      <article class="projects">
+        <h2>Projects</h2>
+        <ul>
+          <li><strong>Face Wireframe Demo</strong> – Real‑time MediaPipe face‑mesh visualizer built with Vue 3 (this site).</li>
+          <li><strong>AI News Hub</strong> – Aggregates latest AI news using custom APIs (referenced in my GitHub repo).</li>
+          <li><strong>OpenClaw Plugin Suite</strong> – A collection of OpenClaw skills for automation and dev‑ops.</li>
+        </ul>
+      </article>
+      <article class="contact">
+        <h2>Contact</h2>
+        <p>Feel free to reach out via any of the social links above or drop me an email at <a href="mailto:abrardw@example.com">abrardw@example.com</a>.</p>
+      </article>
+    </section>
 
     <!-- UI controls -->
     <div class="controls">
@@ -158,6 +178,7 @@ onBeforeUnmount(() => {
   background: radial-gradient(ellipse at center, #0a0a2a, #000);
   overflow: hidden;
   font-family: 'Segoe UI', Tahoma, sans-serif;
+  color: #fff;
 }
 .overlay {
   position: absolute;
@@ -168,7 +189,7 @@ onBeforeUnmount(() => {
 /* Personal overlay */
 .info-panel {
   position: absolute;
-  top: 30%;
+  top: 20%;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -176,53 +197,24 @@ onBeforeUnmount(() => {
   z-index: 10;
   animation: fadeIn 2s ease-out;
 }
-.info-panel .name {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  letter-spacing: 2px;
-  text-shadow: 0 0 10px #00ffdd;
-}
-.info-panel .links a {
-  margin: 0 0.8rem;
-  color: #fff;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: color 0.3s, border-bottom 0.3s;
-}
-.info-panel .links a:hover {
-  color: #00ffdd;
-  border-bottom: 1px solid #00ffdd;
-}
-.controls {
+.info-panel .name { font-size: 3rem; margin-bottom: .5rem; letter-spacing: 2px; text-shadow: 0 0 10px #00ffdd; }
+.info-panel .title { font-size: 1.2rem; margin-bottom: 1rem; }
+.info-panel .links a { margin: 0 .6rem; color: #fff; text-decoration: none; border-bottom: 1px solid transparent; transition: color .3s, border-bottom .3s; }
+.info-panel .links a:hover { color: #00ffdd; border-bottom: 1px solid #00ffdd; }
+/* Scrollable content sections */
+.content {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 10;
-  display: flex;
-  gap: 10px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow-y: auto;
+  padding: 4rem 2rem 2rem;
+  z-index: 5;
 }
-button {
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  border: 1px solid #555;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
+.content article { max-width: 800px; margin: 2rem auto; background: rgba(0,0,0,0.6); padding: 1.5rem; border-radius: 8px; }
+.content h2 { margin-top: 0; color: #00ffdd; }
+.content p, .content li { line-height: 1.6; }
+.controls { position: absolute; top: 20px; left: 20px; z-index: 10; display: flex; gap: 10px; }
+button { background: rgba(0,0,0,0.6); color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
 button.active { background: rgba(0,123,255,0.5); border-color:#007bff; }
-.status {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  z-index: 10;
-  background: rgba(0,0,0,0.7);
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
+.status { position: absolute; bottom: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.7); color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 12px; }
+@keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(-20px);} to { opacity:1; transform:translateX(-50%) translateY(0);} }
 </style>
